@@ -7,6 +7,11 @@ if ($cred.UserName -ne "usuario" -or ($cred.GetNetworkCredential().Password -ne 
     exit
 }
 
+# Mostrar mensaje de bienvenida personalizado
+Write-Host "`n==============================" -ForegroundColor Cyan
+Write-Host "     BIENVENIDO $($cred.UserName.ToUpper())" -ForegroundColor Cyan
+Write-Host "==============================" -ForegroundColor Cyan
+
 # Rutas
 $origen = "C:\prueba_caras"
 $destino = "C:\caras_autorizadas"
@@ -39,11 +44,17 @@ foreach ($img in $imagenes) {
 
         # Obtener extensión original
         $extension = $img.Extension
-        $nuevoPath = Join-Path $destino ($nuevoNombre + $extension)
+
+        # Obtener fecha y hora actual en formato con punto para la hora
+        $fechaHora = Get-Date -Format "dd MM yyyy HH.mm"
+
+        # Construir nuevo nombre con fecha y hora
+        $nombreFinal = "$nuevoNombre $fechaHora$extension"
+        $nuevoPath = Join-Path $destino $nombreFinal
 
         # Mover y renombrar
         Move-Item -Path $img.FullName -Destination $nuevoPath -Force
-        Write-Host "Imagen '$($img.Name)' movida y renombrada como '$nuevoNombre$extension'." -ForegroundColor Green
+        Write-Host "Imagen '$($img.Name)' movida y renombrada como '$nombreFinal'." -ForegroundColor Green
     } else {
         Write-Host "Imagen '$($img.Name)' omitida." -ForegroundColor Gray
     }
