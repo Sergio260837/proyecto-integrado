@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Control de Puerta</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #00bcd4, #009688);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 40px 30px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+    }
+
+    h1 {
+      margin-bottom: 25px;
+      color: #00695c;
+      font-size: 2em;
+    }
+
+    button {
+      font-size: 1.2em;
+      padding: 14px 20px;
+      margin: 10px 0;
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    #abrir {
+      background: linear-gradient(to right, #4CAF50, #81C784);
+      color: white;
+    }
+
+    #cerrar {
+      background: linear-gradient(to right, #e53935, #ef5350);
+      color: white;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      opacity: 0.9;
+    }
+
+    .status {
+      margin-top: 20px;
+      font-size: 1em;
+      color: #004d40;
+      font-weight: bold;
+    }
+
+    .puerta-icono {
+      font-size: 5em;
+      margin-bottom: 20px;
+      transition: transform 0.4s ease;
+    }
+
+    .puerta-abierta {
+      transform: rotateY(180deg);
+      color: #4caf50;
+    }
+
+    .puerta-cerrada {
+      color: #f44336;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.6);
+    }
+
+    .modal-content {
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #4CAF50;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      margin: 10px auto;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+
+    .loader.active {
+      display: block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="puerta-icono" id="iconoPuerta">🚪</div>
+    <h1>Control de Puerta</h1>
+    <button id="abrir" onclick="controlarPuerta('on')">🔓 Abrir Puerta</button>
+    <button id="cerrar" onclick="controlarPuerta('off')">🔒 Cerrar Puerta</button>
+    <div class="loader" id="loader"></div>
+    <div class="status" id="estadoPuerta">Estado: Esperando acción...</div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <p id="mensajeModal"></p>
+    </div>
+  </div>
+
+  <audio id="sonidoAbrir" src="https://www.soundjay.com/button/beep-07.mp3"></audio>
+  <audio id="sonidoCerrar" src="https://www.soundjay.com/button/beep-10.mp3"></audio>
+
+  <script>
+    const shellyIP = "http://192.168.1.100";
+
+    function mostrarMensaje(mensaje) {
+      document.getElementById('mensajeModal').textContent = mensaje;
+      const modal = document.getElementById('modal');
+      modal.classList.add('show');
+      setTimeout(() => modal.classList.remove('show'), 2500);
+    }
+
+    function cambiarIcono(estado) {
+      const icono = document.getElementById('iconoPuerta');
+      icono.className = 'puerta-icono';
+      if (estado === 'abierta') {
+        icono.textContent = '🚪';
+        icono.classList.add('puerta-abierta');
+      } else {
+        icono.textContent = '🚪';
+        icono.classList.add('puerta-cerrada');
+      }
+    }
+
+    function controlarPuerta(accion) {
+      const estado = document.getElementById('estadoPuerta');
+      const loader = document.getElementById('loader');
+
+      loader.classList.add('active');
+
+      if (accion === 'on') {
+        fetch(`${shellyIP}/rpc/Switch.Switch.Set?id=0&on=true`, { method: "POST" })
+          .then(response => {
+            if (response.ok) {
+              document.getElementById('sonidoAbrir').play();
+              cambiarIcono('abierta');
+              estado.textContent = "Estado: Puerta abierta (cerrará en 5s)";
+              mostrarMensaje("¡Puerta abierta!");
+              setTimeout(() => {
+                fetch(`${shellyIP}/rpc/Switch.Switch.Set?id=0&on=false`, { method: "POST" });
+                estado.textContent = "Estado: Puerta cerrada automáticamente";
+                cambiarIcono('cerrada');
+              }, 5000);
+            } else {
+              mostrarMensaje("Error al abrir la puerta");
+            }
+            loader.classList.remove('active');
+          }).catch(err => {
+            mostrarMensaje("No se pudo conectar al dispositivo");
+            loader.classList.remove('active');
+            console.error(err);
+          });
+
+      } else if (accion === 'off') {
+        fetch(`${shellyIP}/rpc/Switch.Switch.Set?id=0&on=false`, { method: "POST" })
+          .then(response => {
+            if (response.ok) {
+              document.getElementById('sonidoCerrar').play();
+              cambiarIcono('cerrada');
+              estado.textContent = "Estado: Puerta cerrada manualmente";
+              mostrarMensaje("¡Puerta cerrada!");
+            } else {
+              mostrarMensaje("Error al cerrar la puerta");
+            }
+            loader.classList.remove('active');
+          }).catch(err => {
+            mostrarMensaje("No se pudo conectar al dispositivo");
+            loader.classList.remove('active');
+            console.error(err);
+          });
+      }
+    }
+  </script>
+</body>
+</html>

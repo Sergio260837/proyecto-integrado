@@ -1,0 +1,15 @@
+[Unit]
+Description=Sistema de reconocimiento facial para apertura de puerta
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 __PATH__/main.py
+WorkingDirectory=__PATH__
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=__USER__
+Group=__USER__
+
+[Install]
+WantedBy=multi-user.target
